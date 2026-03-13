@@ -8,6 +8,8 @@ import os
 import io
 import logging
 
+from pathlib import Path
+
 from edk2toolext.environment.uefi_build import UefiBuilder
 from edk2toolext.invocables.edk2_ci_setup import CiSetupSettingsManager
 from edk2toolext.invocables.edk2_platform_build import BuildSettingsManager
@@ -173,10 +175,13 @@ class PlatformBuilder(UefiBuilder, BuildSettingsManager):
                                default=CommonPlatform.TargetsSupported[0],
                                choices=CommonPlatform.TargetsSupported,
                                help="the target to build (DEBUG or RELEASE)")
+        parserObj.add_argument("-s", "--sbom", dest="include_sbom", action="store_true",
+                               help="Insert an .sbom PECOFF section into the crypto blob.")
 
     def RetrieveCommandLineOptions(self, args):
         self.target = args.target
         self.arch = args.arch
+        self.include_sbom = args.include_sbom
 
     def GetWorkspaceRoot(self):
         ''' get WorkspacePath '''
@@ -242,6 +247,9 @@ class PlatformBuilder(UefiBuilder, BuildSettingsManager):
         from uefi_compress import analyze_efi_compression
         from pathlib import Path
 
+        if self.include_sbom and not self.insert_sbom():
+            return -1
+
         # Get the toolchain from environment
         toolchain = self.env.GetValue("TOOL_CHAIN_TAG", "VS2022")
         workspace_root = Path(CommonPlatform.WorkspaceRoot)
@@ -293,7 +301,32 @@ class PlatformBuilder(UefiBuilder, BuildSettingsManager):
 
         logging.critical("=" * 80)
         return 0
+    
+    def insert_sbom(self) -> bool:
+        """Generate and insert an SBOM into the .sbom section of the OneCryptoBin PE/COFF binary."""
+        from package_onecrypto import get_onecrypto_version
 
+        ob = self.env.GetValue("BUILD_OUTPUT_BASE")
+        for arch in self.arch:
+            crypto_bin_path = Path(ob) / arch / "OneCryptoPkg" / "OneCryptoBin"
+
+            efi_files = list(crypto_bin_path.glob("*/OUTPUT/*.efi"))
+            for efi_file in efi_files:
+                logging.critical(f"Inserting .sbom section for {efi_file.name}[{arch}] ...")
+                
+                sbom_data = {
+                    "tag_id": "replace with GUID",
+                    "software_name": efi_file.name,
+                    "software_version": get_onecrypto_version(),
+                    "product": "OneCrypto",
+                    "distributor_name": "Microsoft"
+                }
+                
+                if not self.Helper.InsertSbomSection(efi_file, sbom_data):
+                    logging.error(f"Failed to insert .sbom section into {efi_file.name}")
+                    return False
+        
+        return True
 
 if __name__ == "__main__":
     import argparse

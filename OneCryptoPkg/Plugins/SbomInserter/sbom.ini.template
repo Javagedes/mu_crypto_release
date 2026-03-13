@@ -1,0 +1,9 @@
+[uSWID]
+tag-id = $tag_id
+software-name = $software_name
+software-version = $software_version
+version-scheme = multipartnumeric
+product = $product
+
+[uSWID-Entity:TagCreator]
+name = $distributor_name

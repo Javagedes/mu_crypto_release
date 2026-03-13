@@ -1,0 +1,3 @@
+scope: global
+name: .sbom PE/COFF Section Inserter 
+module: SbomInserter
