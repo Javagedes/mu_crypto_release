@@ -32,8 +32,22 @@ class SbomInserter(IUefiHelperPlugin):
             args = ""
             args += f"--load {temp_file.name}"
             args += f" --save {str(efi_file_path)}"
-            args += f" --objcopy /usr/bin/llvm-objcopy"
+            if "X64" in str(efi_file_path):
+                args += f" --objcopy /usr/bin/objcopy"
+            else:
+                args += f" --objcopy /usr/bin/llvm-objcopy"
 
+            result = io.StringIO()
+            ret = RunCmd(cmd, args, outstream = result)
+            if ret != 0:
+                logging.error(result.getvalue())
+                return False
+
+            args = ""
+            args += f"--load {temp_file.name}"
+            args += f" --save {str(efi_file_path.with_suffix('.uswid'))}"
+            args += f" --objcopy /usr/bin/llvm-objcopy"
+            
             result = io.StringIO()
             ret = RunCmd(cmd, args, outstream = result)
             if ret != 0:
