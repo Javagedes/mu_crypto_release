@@ -1,6 +1,6 @@
 # A workflow to build EDKII packages using the CLANGPDB toolchain in windows and ubuntu environments
 #
-# NOTE: This file is automatically synchronized from Mu DevOps to keep the version of the
+# NOTE: This file is automatically synchronized from Mu DevOps to keep the version of th.
 #       workflow up to date. Update the original file there instead of the file in this repo.
 #
 # - Mu DevOps Repo: https://github.com/microsoft/mu_devops
